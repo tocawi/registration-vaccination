@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS // Pet Registration</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-orange: #ff5f1f;
+            --dark-bg: #0d0d0d;
+            --panel-bg: #1a1a1a;
+        }
+        body {
+            background-color: var(--dark-bg);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: var(--panel-bg);
+            padding: 30px;
+            border: 1px solid var(--neon-orange);
+            box-shadow: 0 0 15px rgba(255, 95, 31, 0.4);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 800px;
+        }
+        h1 {
+            color: var(--neon-orange);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--neon-orange);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #333;
+            color: var(--neon-orange);
+            font-family: 'Orbitron', sans-serif;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input[type="text"]:focus, input[type="date"]:focus {
+            outline: none;
+            border-color: var(--neon-orange);
+            box-shadow: 0 0 8px var(--neon-orange);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input {
+            accent-color: var(--neon-orange);
+            width: 20px;
+            height: 20px;
+        }
+        #map {
+            height: 300px;
+            width: 100%;
+            border: 1px solid var(--neon-orange);
+            margin-top: 10px;
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 2px solid var(--neon-orange);
+            color: var(--neon-orange);
+            font-size: 1.2em;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: var(--neon-orange);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-orange);
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Initialize Pet Node</h1>
+    <form id="registerForm">
+        <div class="form-group">
+            <label>Pet Name</label>
+            <input type="text" id="petName" required>
+        </div>
+        <div class="form-group">
+            <label>PUID (Pet Unique Identifier)</label>
+            <input type="text" id="puid" required>
+        </div>
+        
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="microchipped">
+            <label style="margin:0;">Microchip Implanted</label>
+        </div>
+        <div class="form-group hidden" id="chipDiv">
+            <label>Microchip Serial Number</label>
+            <input type="text" id="microchipNum">
+        </div>
+
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="vaccinated">
+            <label style="margin:0;">Vaccination Administered</label>
+        </div>
+        <div class="form-group hidden" id="vacDiv">
+            <label>Date of Vaccination</label>
+            <input type="date" id="vacDate">
+        </div>
+
+        <div class="form-group">
+            <label>Sector Geo-Coordinates (Click Map to Drop Pin)</label>
+            <input type="text" id="coords" readonly placeholder="Lat, Lng will appear here" required>
+            <div id="map"></div>
+        </div>
+
+        <button type="submit" id="submitBtn">Transmit Data</button>
+    </form>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    // === IMPORTANT: REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ===
+    const APPS_SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
+
+    // Toggle fields based on checkboxes
+    document.getElementById('microchipped').addEventListener('change', function() {
+        document.getElementById('chipDiv').style.display = this.checked ? 'block' : 'none';
+    });
+    document.getElementById('vaccinated').addEventListener('change', function() {
+        document.getElementById('vacDiv').style.display = this.checked ? 'block' : 'none';
+    });
+
+    // Initialize Map (Centered roughly on Kenya)
+    const map = L.map('map').setView([-1.2921, 36.8219], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let marker;
+    map.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        document.getElementById('coords').value = `${lat}, ${lng}`;
+        
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng]).addTo(map);
+    });
+
+    // Handle Submission
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.innerText = "Transmitting...";
+        
+        const coords = document.getElementById('coords').value.split(',');
+
+        const payload = {
+            action: "register",
+            petName: document.getElementById('petName').value,
+            puid: document.getElementById('puid').value,
+            microchipped: document.getElementById('microchipped').checked ? "Yes" : "No",
+            microchipNum: document.getElementById('microchipNum').value || "N/A",
+            vaccinated: document.getElementById('vaccinated').checked ? "Yes" : "No",
+            vacDate: document.getElementById('vacDate').value || "N/A",
+            lat: coords[0].trim(),
+            lng: coords[1].trim()
+        };
+
+        try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' }, // Avoids CORS preflight
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (result.status === "success") {
+                alert("Data Transmitted Successfully");
+                document.getElementById('registerForm').reset();
+                if (marker) map.removeLayer(marker);
+            } else {
+                alert("Transmission Error: " + result.message);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Network link failed.");
+        } finally {
+            btn.innerText = "Transmit Data";
+        }
+    });
+</script>
+</body>
+</html>
