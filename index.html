@@ -225,6 +225,21 @@
     // Handle Submission
     document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
+
+        // Validation for checkboxes
+        let errors = [];
+        if (!document.getElementById('microchipped').checked) {
+            errors.push('Please implant Microchip');
+        }
+        if (!document.getElementById('vaccinated').checked) {
+            errors.push('Please administer Vaccine');
+        }
+
+        if (errors.length > 0) {
+            alert(errors.join('\n'));
+            return; // Stops submission
+        }
+
         const btn = document.getElementById('submitBtn');
         btn.innerText = "Transmitting...";
         
