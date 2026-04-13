@@ -150,8 +150,20 @@
     document.getElementById('microchipped').addEventListener('change', function() {
         document.getElementById('chipDiv').style.display = this.checked ? 'block' : 'none';
     });
+    
     document.getElementById('vaccinated').addEventListener('change', function() {
         document.getElementById('vacDiv').style.display = this.checked ? 'block' : 'none';
+    });
+
+    // Auto-fill today's date on click if empty
+    document.getElementById('vacDate').addEventListener('click', function() {
+        if (!this.value) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            this.value = `${yyyy}-${mm}-${dd}`;
+        }
     });
 
     // Initialize Map (Centered roughly on Kenya)
@@ -161,6 +173,8 @@
     }).addTo(map);
 
     let marker;
+
+    // Map Click Event
     map.on('click', function(e) {
         const lat = e.latlng.lat.toFixed(6);
         const lng = e.latlng.lng.toFixed(6);
@@ -168,6 +182,44 @@
         
         if (marker) map.removeLayer(marker);
         marker = L.marker([lat, lng]).addTo(map);
+    });
+
+    // Add Geolocation Locate Button Top-Right
+    const locateControl = L.control({ position: 'topright' });
+    locateControl.onAdd = function() {
+        const btn = L.DomUtil.create('button', '');
+        btn.type = 'button';
+        btn.innerHTML = '📍 LOCATE';
+        btn.style.cssText = 'background: var(--panel-bg); color: var(--neon-orange); border: 1px solid var(--neon-orange); padding: 6px 12px; cursor: pointer; font-family: "Orbitron", sans-serif; font-size: 0.8em; margin-top: 10px; margin-right: 10px; border-radius: 4px; box-shadow: 0 0 5px rgba(255, 95, 31, 0.4); pointer-events: auto;';
+        
+        btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            btn.innerHTML = 'LOCATING...';
+            map.locate({ setView: true, maxZoom: 16 });
+        };
+        return btn;
+    };
+    locateControl.addTo(map);
+
+    // Geolocation Success
+    map.on('locationfound', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        document.getElementById('coords').value = `${lat}, ${lng}`;
+        
+        if (marker) map.removeLayer(marker);
+        marker = L.marker(e.latlng).addTo(map);
+
+        const locateBtn = document.querySelector('.leaflet-top.leaflet-right button');
+        if(locateBtn) locateBtn.innerHTML = '📍 LOCATE';
+    });
+
+    // Geolocation Error
+    map.on('locationerror', function(e) {
+        alert("Location access denied or unavailable.");
+        const locateBtn = document.querySelector('.leaflet-top.leaflet-right button');
+        if(locateBtn) locateBtn.innerHTML = '📍 LOCATE';
     });
 
     // Handle Submission
