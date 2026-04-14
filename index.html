@@ -5,17 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vaccination/Microchip Registration</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=Tektur:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-orange: #ff5f1f;
             --dark-bg: #0d0d0d;
             --panel-bg: #1a1a1a;
         }
+        
+        /* Custom Scrollbar - Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-orange) var(--dark-bg);
+        }
+        
+        /* Custom Scrollbar - Webkit (Chrome, Edge, Safari) */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-orange);
+            border-radius: 6px;
+            border: 2px solid var(--dark-bg); /* Adds a slight gap around the thumb */
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff7538;
+        }
+
         body {
             background-color: var(--dark-bg);
             color: #fff;
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'IBM Plex Sans', sans-serif;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -31,11 +55,13 @@
             max-width: 800px;
         }
         h1 {
+            font-family: 'Tektur', sans-serif;
             color: var(--neon-orange);
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 2px;
             text-shadow: 0 0 10px var(--neon-orange);
+            margin-bottom: 30px;
         }
         .form-group {
             margin-bottom: 20px;
@@ -52,7 +78,7 @@
             background: #000;
             border: 1px solid #333;
             color: var(--neon-orange);
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'IBM Plex Sans', sans-serif;
             box-sizing: border-box;
             transition: 0.3s;
         }
@@ -85,9 +111,10 @@
             border: 2px solid var(--neon-orange);
             color: var(--neon-orange);
             font-size: 1.2em;
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'IBM Plex Sans', sans-serif;
             cursor: pointer;
             text-transform: uppercase;
+            font-weight: 600;
             transition: all 0.3s;
             margin-top: 20px;
         }
@@ -190,7 +217,7 @@
         const btn = L.DomUtil.create('button', '');
         btn.type = 'button';
         btn.innerHTML = '📍 LOCATE';
-        btn.style.cssText = 'background: var(--panel-bg); color: var(--neon-orange); border: 1px solid var(--neon-orange); padding: 6px 12px; cursor: pointer; font-family: "Orbitron", sans-serif; font-size: 0.8em; margin-top: 10px; margin-right: 10px; border-radius: 4px; box-shadow: 0 0 5px rgba(255, 95, 31, 0.4); pointer-events: auto;';
+        btn.style.cssText = 'background: var(--panel-bg); color: var(--neon-orange); border: 1px solid var(--neon-orange); padding: 6px 12px; cursor: pointer; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 0.8em; margin-top: 10px; margin-right: 10px; border-radius: 4px; box-shadow: 0 0 5px rgba(255, 95, 31, 0.4); pointer-events: auto;';
         
         btn.onclick = function(e) {
             e.preventDefault();
