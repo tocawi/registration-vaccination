@@ -30,7 +30,7 @@
         ::-webkit-scrollbar-thumb {
             background: var(--neon-orange);
             border-radius: 6px;
-            border: 2px solid var(--dark-bg); /* Adds a slight gap around the thumb */
+            border: 2px solid var(--dark-bg);
         }
         ::-webkit-scrollbar-thumb:hover {
             background: #ff7538;
@@ -72,7 +72,8 @@
             color: #aaa;
             font-size: 0.9em;
         }
-        input[type="text"], input[type="date"] {
+        /* ADDED SELECT TO THE STYLING RULES */
+        input[type="text"], input[type="date"], select {
             width: 100%;
             padding: 10px;
             background: #000;
@@ -82,10 +83,14 @@
             box-sizing: border-box;
             transition: 0.3s;
         }
-        input[type="text"]:focus, input[type="date"]:focus {
+        input[type="text"]:focus, input[type="date"]:focus, select:focus {
             outline: none;
             border-color: var(--neon-orange);
             box-shadow: 0 0 8px var(--neon-orange);
+        }
+        select option {
+            background: var(--dark-bg);
+            color: var(--neon-orange);
         }
         .checkbox-group {
             display: flex;
@@ -159,6 +164,29 @@
         </div>
 
         <div class="form-group">
+            <label>Please choose spayed or neutered (Optional)</label>
+            <select id="sterilized">
+                <option value="">-- Unrequired / Select Status --</option>
+                <option value="Spayed">Spayed</option>
+                <option value="Neutered">Neutered</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>County</label>
+            <select id="county">
+                <option value="">-- Select County --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Subcounty</label>
+            <select id="subcounty" disabled>
+                <option value="">-- Select Subcounty --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
             <label>Sector Geo-Coordinates (Click 'Locate' on map to pin more accurately)</label>
             <input type="text" id="coords" readonly placeholder="Lat, Lng will appear here after Locating" required>
             <div id="map"></div>
@@ -170,8 +198,87 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-    // === IMPORTANT: REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ===
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmoWP3lfZ0FHVUveqlDFXHjrctplU08_wh5KcTMhm7gSRl4axICroLVhRmVE8ET3vo/exec";
+
+    // --- KENYA COUNTIES & SUBCOUNTIES DATA ---
+    const kenyaData = {
+        "Baringo": ["Baringo Central", "Baringo North", "Baringo South", "Eldama Ravine", "Mogotio", "Tiaty"],
+        "Bomet": ["Bomet Central", "Bomet East", "Chepalungu", "Konoin", "Sotik"],
+        "Bungoma": ["Bumula", "Kabuchai", "Kanduyi", "Kimilili", "Mt Elgon", "Sirisia", "Tongaren", "Webuye East", "Webuye West"],
+        "Busia": ["Budalangi", "Butula", "Funyula", "Nambale", "Teso North", "Teso South"],
+        "Elgeyo Marakwet": ["Keiyo North", "Keiyo South", "Marakwet East", "Marakwet West"],
+        "Embu": ["Manyatta", "Mbeere North", "Mbeere South", "Runyenjes"],
+        "Garissa": ["Balambala", "Dadaab", "Fafi", "Garissa Township", "Hulugho", "Ijara", "Lagdera"],
+        "Homa Bay": ["Homa Bay Town", "Kabondo Kasipul", "Karachuonyo", "Kasipul", "Mbita", "Ndhiwa", "Rangwe", "Suba"],
+        "Isiolo": ["Garbatulla", "Isiolo", "Merti"],
+        "Kajiado": ["Kajiado Central", "Kajiado East", "Kajiado North", "Kajiado South", "Kajiado West"],
+        "Kakamega": ["Butere", "Ikholomani", "Khwisero", "Lugari", "Lurambi", "Malava", "Matungu", "Mumias East", "Mumias West", "Navakholo", "Shinyalu"],
+        "Kericho": ["Ainamoi", "Belgut", "Bureti", "Kipkelion East", "Kipkelion West", "Sigowet/Soin"],
+        "Kiambu": ["Gatundu North", "Gatundu South", "Githunguri", "Juja", "Kabete", "Kiambaa", "Kiambu", "Kikuyu", "Lari", "Limuru", "Ruiru", "Thika Town"],
+        "Kilifi": ["Ganze", "Kaloleni", "Kilifi North", "Kilifi South", "Magarini", "Malindi", "Rabai"],
+        "Kirinyaga": ["Kirinyaga Central", "Kirinyaga East", "Kirinyaga West", "Mwea East", "Mwea West"],
+        "Kisii": ["Bobasi", "Bomachoge Borabu", "Bomachoge Chache", "Bonchari", "Kitutu Chache North", "Kitutu Chache South", "Nyaribari Chache", "Nyaribari Masaba", "South Mugirango"],
+        "Kisumu": ["Kisumu Central", "Kisumu East", "Kisumu West", "Muhoroni", "Nyakach", "Nyando", "Seme"],
+        "Kitui": ["Kitui Central", "Kitui East", "Kitui Rural", "Kitui South", "Kitui West", "Mwingi Central", "Mwingi North", "Mwingi West"],
+        "Kwale": ["Kinango", "Lunga Lunga", "Msambweni", "Matuga"],
+        "Laikipia": ["Laikipia East", "Laikipia North", "Laikipia West"],
+        "Lamu": ["Lamu East", "Lamu West"],
+        "Machakos": ["Athi River", "Btwata", "Kangundo", "Kathiani", "Machakos", "Masinga", "Matungulu", "Mwala", "Yatta"],
+        "Makueni": ["Kaiti", "Kibwezi East", "Kibwezi West", "Kilome", "Makueni", "Mbooni"],
+        "Mandera": ["Banissa", "Lafey", "Mandera East", "Mandera North", "Mandera South", "Mandera West"],
+        "Marsabit": ["Laisamis", "Moyale", "North Horr", "Saku"],
+        "Meru": ["Buuri", "Igembe Central", "Igembe North", "Igembe South", "Imenti Central", "Imenti North", "Imenti South", "Tigania East", "Tigania West"],
+        "Migori": ["Awendo", "Kuria East", "Kuria West", "Nyatike", "Rongo", "Suna East", "Suna West", "Uriri"],
+        "Mombasa": ["Changamwe", "Jomvu", "Kisauni", "Likoni", "Mvita", "Nyali"],
+        "Murang'a": ["Gatanga", "Kahuro", "Kandara", "Kangema", "Kigumo", "Kiharu", "Mathioya", "Murang'a South"],
+        "Nairobi": ["Dagoretti North", "Dagoretti South", "Embakasi Central", "Embakasi East", "Embakasi North", "Embakasi South", "Embakasi West", "Kamukunji", "Kasarani", "Kibra", "Lang'ata", "Makadara", "Mathare", "Roysambu", "Ruaraka", "Starehe", "Westlands"],
+        "Nakuru": ["Bahati", "Gilgil", "Kuresoi North", "Kuresoi South", "Molo", "Naivasha", "Nakuru Town East", "Nakuru Town West", "Njoro", "Rongai", "Subukia"],
+        "Nandi": ["Aldai", "Chesumei", "Emgwen", "Mosop", "Nandi Hills", "Tinderet"],
+        "Narok": ["Narok East", "Narok North", "Narok South", "Narok West", "Transmara East", "Transmara West"],
+        "Nyamira": ["Borabu", "Manga", "Masaba North", "Nyamira North", "Nyamira South"],
+        "Nyandarua": ["Kinangop", "Kipipiri", "Ndaragwa", "Ol Kalou", "Ol Joro Orok"],
+        "Nyeri": ["Kieni East", "Kieni West", "Mathira East", "Mathira West", "Mukurweini", "Nyeri Town", "Othaya", "Tetu"],
+        "Samburu": ["Samburu East", "Samburu North", "Samburu West"],
+        "Siaya": ["Alego Usonga", "Bondo", "Gem", "Rarieda", "Ugenya", "Ugunja"],
+        "Taita Taveta": ["Mwatate", "Taveta", "Voi", "Wundanyi"],
+        "Tana River": ["Bura", "Galole", "Garsen"],
+        "Tharaka Nithi": ["Chuka", "Igambang'ombe", "Maara", "Muthambi", "Tharaka North", "Tharaka South"],
+        "Trans Nzoia": ["Cherangany", "Endebess", "Kwanza", "Kiminini", "Saboti"],
+        "Turkana": ["Loima", "Turkana Central", "Turkana East", "Turkana North", "Turkana South", "Turkana West"],
+        "Uasin Gishu": ["Ainabkoi", "Kapseret", "Kesses", "Moiben", "Soy", "Turbo"],
+        "Vihiga": ["Emuhaya", "Hamisi", "Luanda", "Sabatia", "Vihiga"],
+        "Wajir": ["Eldas", "Tarbaj", "Wajir East", "Wajir North", "Wajir South", "Wajir West"],
+        "West Pokot": ["Kacheliba", "Kapenguria", "Pokot South", "Sigor"]
+    };
+
+    // Populate Counties Dropdown
+    const countySelect = document.getElementById('county');
+    const subcountySelect = document.getElementById('subcounty');
+
+    Object.keys(kenyaData).sort().forEach(county => {
+        let option = document.createElement('option');
+        option.value = county;
+        option.textContent = county;
+        countySelect.appendChild(option);
+    });
+
+    // Populate Subcounties based on selected County
+    countySelect.addEventListener('change', function() {
+        subcountySelect.innerHTML = '<option value="">-- Select Subcounty --</option>'; // Reset
+        
+        if (this.value) {
+            subcountySelect.disabled = false;
+            kenyaData[this.value].sort().forEach(subcounty => {
+                let option = document.createElement('option');
+                option.value = subcounty;
+                option.textContent = subcounty;
+                subcountySelect.appendChild(option);
+            });
+        } else {
+            subcountySelect.disabled = true;
+        }
+    });
+    // --- END COUNTIES & SUBCOUNTIES DATA ---
 
     // Toggle fields based on checkboxes
     document.getElementById('microchipped').addEventListener('change', function() {
@@ -272,6 +379,7 @@
         
         const coords = document.getElementById('coords').value.split(',');
 
+        // Pushing new data into payload
         const payload = {
             action: "register",
             petName: document.getElementById('petName').value,
@@ -281,7 +389,10 @@
             vaccinated: document.getElementById('vaccinated').checked ? "Yes" : "No",
             vacDate: document.getElementById('vacDate').value || "N/A",
             lat: coords[0].trim(),
-            lng: coords[1].trim()
+            lng: coords[1].trim(),
+            sterilized: document.getElementById('sterilized').value || "N/A", // <-- Added
+            county: document.getElementById('county').value || "N/A",         // <-- Added
+            subcounty: document.getElementById('subcounty').value || "N/A"    // <-- Added
         };
 
         try {
@@ -294,6 +405,7 @@
             if (result.status === "success") {
                 alert("Data Transmitted Successfully");
                 document.getElementById('registerForm').reset();
+                subcountySelect.disabled = true; // reset the subcounty dropdown dependency
                 if (marker) map.removeLayer(marker);
             } else {
                 alert("Transmission Error: " + result.message);
